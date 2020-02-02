@@ -1,0 +1,913 @@
+#include <iostream>
+#include <iomanip>
+#include <stdio.h>
+#include <windows.h>
+#include <string>
+#include <string.h>
+#include <vector>
+#include <cstdlib>
+#include <fstream>
+#include <sstream> 
+#include <cstdlib>
+#undef max
+#include <limits>
+#include<ios>    
+
+using namespace std;
+char tmp_map[30][70];
+int num_of_data = 0;
+char map[30][70];//= {
+				 //	"    +==========================================================+",
+				 //	"    |                                                          |",
+				 //	"    |   ######     #         ###                               |",
+				 //	"    |   #    #   #  #      #                                   |",
+				 //	"    |   ######  #    #    #           #######   ##   ##    #   |",
+				 //	"    |   #       ######   #            #0 #  #  #  #  # #   #   |",
+				 //	"    |   #       #0   #    #           #  #  #  ####  #  # 0#   |",
+				 //	"    |   #       #    #     #          #  #  #  #  #  #   # #   |",
+				 //	"    |   #       #    #      ####      #  #  #  #  #  #    ##   |",
+				 //	"    |..........................................................|",
+				 //	"    |........................####__####........................|",
+				 //	"|####........................##      ##........................####|",
+				 //	"|< ..........................##      ##.......................... >|",
+				 //	"|####........................##########........................####|",
+				 //	"    |..........................................................|",
+				 //	"    |........................##########........................|",
+				 //	"    |..####################......##......####################..|",
+				 //	"    |............................##............................|",
+				 //	"    |..######......##############################......######..|",
+				 //	"    |......##..##..................................##..##......|",
+				 //	"    |####..##..##..##############################..##..##..####|",
+				 //	"    |..........##................##................##..........|",
+				 //	"    |..########################..##..########################..|",
+				 //	"    |0........................................................0|",
+				 //	"    +==========================================================+",
+				 //	"    SCORE                 lives                                 "
+				 //};
+
+
+void ShowMap()
+{
+	for (int i = 0; i < 30; i++) {
+		printf("%s\n", map[i]);
+	}
+}
+
+void won(int pts);
+
+void highscore(int pts);
+
+void load_the_map();
+
+vector<int> read_numbers(string file_name);
+
+
+void gotoxy(short x, short y)
+{
+	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+	COORD position = { x, y };
+
+	SetConsoleCursorPosition(hStdout, position);
+}
+
+class entity {
+public:
+	entity(int x, int y) {
+		this->x = x;
+		this->y = y;
+	}
+
+	void move_x(int p) {
+		if (map[y][x + p] == ' ') x += p;
+	}
+
+	void move_y(int p) {
+		if (map[y + p][x] == ' ') y += p;
+	}
+
+	void move(int p, int q) {
+		x += p;
+		y += q;
+	}
+
+	int get_x() { return x; }
+	int get_y() { return y; }
+
+	void draw(char p) {
+		map[x][y] = p;
+		gotoxy(x, y); printf("%c", p);
+	}
+
+private:
+	int x;
+	int y;
+};
+
+struct walk {
+	short walk_count;
+	short x;
+	short y;
+	short back;
+};
+
+struct target {
+	short x;
+	short y;
+};
+
+vector<target> walk_queue;
+
+vector<walk> BFSArray;
+
+void AddArray(int x, int y, int wc, int back) {
+	if (tmp_map[y][x] == ' ' || tmp_map[y][x] == '.' || tmp_map[y][x] == '0' || tmp_map[y][x] == '_') {
+		tmp_map[y][x] = '#';
+		if (tmp_map[y][x + 1] == ' ' || tmp_map[y][x + 1] == '.') {
+			tmp_map[y][x + 1] = '#';
+		}
+		walk tmp;
+		tmp.x = x;
+		tmp.y = y;
+		tmp.walk_count = wc;
+		tmp.back = back;
+		BFSArray.push_back(tmp);
+	}
+}
+
+void FindPath(int sx, int sy, int x, int y) {
+
+
+	memcpy(tmp_map, map, sizeof(map));
+	BFSArray.clear();
+	walk tmp;
+	tmp.x = sx;
+	tmp.y = sy;
+	tmp.walk_count = 0;
+	tmp.back = -1;
+	BFSArray.push_back(tmp);
+
+	int i = 0;
+	while (i < BFSArray.size()) {
+		if ((BFSArray[i].x == x && BFSArray[i].y == y) || (BFSArray[i].x == x + 1 && BFSArray[i].y == y) || (BFSArray[i].x + 1 == x && BFSArray[i].y == y)) {
+			walk_queue.clear();
+			target tmp2;
+			while (BFSArray[i].walk_count != 0) {
+				tmp2.x = BFSArray[i].x;
+				tmp2.y = BFSArray[i].y;
+				walk_queue.push_back(tmp2);
+
+				i = BFSArray[i].back;
+			}
+
+			break;
+		}
+		if ((map[BFSArray[i].y][BFSArray[i].x + 2] == ' ' || map[BFSArray[i].y][BFSArray[i].x + 2] == '.') && (map[BFSArray[i].y][BFSArray[i].x + 3] == ' ' || map[BFSArray[i].y][BFSArray[i].x + 3] == '.')) {
+			AddArray(BFSArray[i].x + 2, BFSArray[i].y, BFSArray[i].walk_count + 1, i);
+		}
+		else 		AddArray(BFSArray[i].x + 1, BFSArray[i].y, BFSArray[i].walk_count + 1, i);
+		if ((map[BFSArray[i].y][BFSArray[i].x - 2] == ' ' || map[BFSArray[i].y][BFSArray[i].x - 2] == '.') && (map[BFSArray[i].y][BFSArray[i].x - 1] == ' ' || map[BFSArray[i].y][BFSArray[i].x - 1] == '.')) {
+			AddArray(BFSArray[i].x - 2, BFSArray[i].y, BFSArray[i].walk_count + 1, i);
+		}
+		else 			AddArray(BFSArray[i].x - 1, BFSArray[i].y, BFSArray[i].walk_count + 1, i);
+
+		AddArray(BFSArray[i].x, BFSArray[i].y + 1, BFSArray[i].walk_count + 1, i);
+		AddArray(BFSArray[i].x, BFSArray[i].y - 1, BFSArray[i].walk_count + 1, i);
+
+		i++;
+
+	}
+
+	BFSArray.clear();
+}
+
+
+int main()
+{
+
+	bool running = true;
+	bool arr = true;
+	char arr2[75] = {};
+	string pacman = ":)";
+	int x = 33; // hero x
+	int y = 14; // hero y
+	int sup_x = 0;
+	int sup_y = 0;
+	int var_x = 0;
+	int var_y = 0;
+	int old_x;
+	int old_y;
+	int con = 0;
+	int con2 = 0;
+	int choice = 1;
+	int i = 0;
+	int enter = 0;
+	int pts = 0;
+	int lives = 3;
+	int ex = 33, ex2 = 35, ex3 = 33, ex4 = 31;
+	int ey = 11, ey2 = 12, ey3 = 12, ey4 = 12;
+	int frame = 0, frame_old = 0;
+	int frame1 = 0, frame2 = 0, frame3 = 0, frame4 = 0;
+	int sup = 0, sup2 = 0;
+	int sp2 = 1, sp3 = 2, sp4 = 3, sp5 = 4;
+	int k = 0, l = 0, num_dot = 0;
+	load_the_map();
+
+	system("cls");
+	cout << ">>>>>>>>>Pacman<<<<<<<<<" << endl << endl;
+	cout << "       Play Game" << endl;
+	cout << "       Highscore" << endl;
+	while (1) {
+		if (GetAsyncKeyState(VK_UP)) { choice = 1; enter = 0; }
+		if (GetAsyncKeyState(VK_DOWN)) { choice = 2; enter = 0; }
+		if (GetAsyncKeyState(VK_RETURN) && i > 3) {
+			enter = 1;
+			cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		}
+		if (i % 5 == 0) arr = !arr;
+
+		if (choice == 1) {
+
+			if (arr) {
+				gotoxy(17, 2); cout << "<--";
+			}
+			else {
+				gotoxy(17, 2); cout << "   ";
+			}
+			gotoxy(17, 3); cout << "   ";
+
+		}
+		else if (choice == 2) {
+			gotoxy(17, 2); cout << "   ";
+
+			if (arr) {
+				gotoxy(17, 3); cout << "<--";
+			}
+			else {
+				gotoxy(17, 3); cout << "   ";
+			}
+		}
+		if (choice == 1 && enter == 1) {
+			break;
+		}
+		else if (choice == 2 && enter == 1) {
+			enter = 0;
+			highscore(pts);
+		}
+		Sleep(100);
+		i++;
+
+
+	}
+	system("cls");
+	ShowMap();
+
+
+	gotoxy(ex, ey); cout << "D:";
+	gotoxy(ex2, ey2); cout << ":c";
+	gotoxy(ex3, ey3); cout << ">:";
+	gotoxy(ex4, ey4); cout << ":{";
+	gotoxy(x, y); cout << ":D";
+	gotoxy(44, 25); cout << "Press 'Esc' to exit";
+	gotoxy(10, 25); cout << pts;
+	gotoxy(32, 25); cout << ":D :D ";
+
+
+
+	gotoxy(29, 14); cout << "          ";
+	gotoxy(29, 15); cout << "  ready?  ";
+	gotoxy(29, 16); cout << "          ";
+
+	Sleep(3000);
+	gotoxy(29, 14); cout << "          ";
+	gotoxy(29, 15); cout << "    go!   ";
+	gotoxy(29, 16); cout << "          ";
+	Sleep(500);
+
+	gotoxy(29, 14); cout << "....:D....";
+	gotoxy(29, 15); cout << "##########";
+	gotoxy(29, 16); cout << "....##....";
+
+
+
+
+
+	while (lives > 0) {
+
+		gotoxy(x, y); cout << "  ";
+
+
+
+		old_x = x;
+		old_y = y;
+
+
+
+
+		if (GetAsyncKeyState(VK_UP)) { con2 = 1; }
+		if (GetAsyncKeyState(VK_DOWN)) { con2 = 2; }
+		if (GetAsyncKeyState(VK_LEFT)) { con2 = 3; }
+		if (GetAsyncKeyState(VK_RIGHT)) { con2 = 4; }
+
+
+				if (((map[y - 1][x] == ' ' || map[y - 1][x] == '.' || map[y - 1][x] == '0') && (map[y - 1][x + 1] == ' ' || map[y - 1][x + 1] == '.' || map[y - 1][x + 1] == '0') )&& con2 == 1) { con = 1; }
+				if (((map[y + 1][x] == ' ' || map[y + 1][x] == '.' || map[y + 1][x] == '0') && (map[y + 1][x + 1] == ' ' || map[y + 1][x + 1] == '.' || map[y + 1][x + 1] == '0') )&& con2 == 2) { con = 2; }
+				if (((map[y][x - 2] == ' ' || map[y][x - 2] == '.' || map[y][x - 2] == '0') && (map[y][x - 1] != '#' && map[y][x - 1] != '|') || (map[y][x - 1] == ' ' || map[y][x - 1] == '.' || map[y][x - 1] == '0') )&& con2 == 3) { con = 3; }
+				if (((map[y][x + 3] == ' ' || map[y][x + 3] == '.' || map[y][x + 3] == '0') && (map[y][x + 2] != '#' && map[y][x + 2] != '|') || (map[y][x + 2] == ' ' || map[y][x + 2] == '.' || map[y][x + 2] == '0')) && con2 == 4) { con = 4; }
+
+
+//		if (con == 1) {
+
+		if ((map[y - 1][x] == ' ' || map[y - 1][x] == '.' || map[y - 1][x] == '0') && (map[y - 1][x + 1] == ' ' || map[y - 1][x + 1] == '.' || map[y - 1][x + 1] == '0') && con == 1 ) {
+			if (map[y - 1][x] == '.' || map[y - 1][x] == '0') { pts += 2; }
+			y--;
+			con = 1;
+		}
+//	}
+
+//		if (con == 2) {
+			if ((map[y + 1][x] == ' ' || map[y + 1][x] == '.' || map[y + 1][x] == '0') && (map[y + 1][x + 1] == ' ' || map[y + 1][x + 1] == '.' || map[y + 1][x + 1] == '0') && con == 2) {
+				if (map[y + 1][x] == '.' || map[y + 1][x] == '0') { pts += 2; }
+				y++;
+				con = 2;
+			}
+//		}
+
+
+//		if (con == 3) {
+			if ((map[y][x - 2] == ' ' || map[y][x - 2] == '.' || map[y][x - 2] == '0') && (map[y][x - 1] != '#' && map[y][x - 1] != '|') && con == 3) {
+				if (map[y][x - 1] == '.' || map[y][x - 2] == '.') pts += 2;
+				pacman = ":)";
+				x -= 2; con = 3;
+			}
+			else if ((map[y][x - 1] == ' ' || map[y][x - 1] == '.' || map[y][x - 1] == '0') && con == 3) {
+				if (map[y][x - 1] == '.' || map[y][x - 1] == '0') pts += 2;
+				pacman = ":)";
+				x -= 1; con = 3;
+			}
+//		}
+
+//		if (con == 4) {
+			if ((map[y][x + 3] == ' ' || map[y][x + 3] == '.' || map[y][x + 3] == '0') && (map[y][x + 2] != '#' && map[y][x + 2] != '|') && con == 4) {
+				if (map[y][x + 1] == '.' || map[y][x + 2] == '.' || map[y][x + 1] == '0' || map[y][x + 2] == '0') pts += 2;
+				pacman = "(:";
+				x += 2; con = 4;
+			}
+			else if ((map[y][x + 2] == ' ' || map[y][x + 2] == '.' || map[y][x + 2] == '0') && con == 4) {
+				if (map[y][x + 2] == '.' || map[y][x + 2] == '0') pts += 2;
+				pacman = "(:";
+				x += 1; con = 4;
+			}
+//		}
+
+
+		if (map[y][x - 1] == '<') {
+			x = 63;
+			y = 12;
+		}
+		else if (map[y][x + 2] == '>') {
+			x = 3;
+			y = 12;
+		}
+
+
+		map[old_y][old_x] = ' ';
+		map[old_y][old_x + 1] = ' ';
+
+
+		sup_x = 65 - x;
+		sup_y = 24 - y;
+
+		if (sup == 0) {
+			var_x = x;
+			var_y = y;
+		}
+
+		gotoxy(x, y); cout << pacman;
+
+
+		gotoxy(ex, ey); cout << map[ey][ex];
+		gotoxy(ex + 1, ey); cout << map[ey][ex + 1];
+
+		gotoxy(ex2, ey2); cout << map[ey2][ex2];
+		gotoxy(ex2 + 1, ey2); cout << map[ey2][ex2 + 1];
+
+		gotoxy(ex3, ey3); cout << map[ey3][ex3];
+		gotoxy(ex3 + 1, ey3); cout << map[ey3][ex3 + 1];
+
+		gotoxy(ex4, ey4); cout << map[ey4][ex4];
+		gotoxy(ex4 + 1, ey4); cout << map[ey4][ex4 + 1];
+
+		gotoxy(ex4, ey4); cout << map[ey4][ex4];
+		gotoxy(ex4 + 1, ey4); cout << map[ey4][ex4 + 1];
+
+
+
+		if (frame1 >= 50 && frame1 % sp5 == 0) {
+			FindPath(ex, ey, var_x, var_y);
+			if (walk_queue.size() != 0) {
+				ex = walk_queue.back().x;
+				ey = walk_queue.back().y;
+			}
+			walk_queue.clear();
+		}
+
+		if (frame2 >= 100 && frame% sp4 == 0) {
+			FindPath(ex2, ey2, var_x, var_y);
+			if (walk_queue.size() != 0) {
+				ex2 = walk_queue.back().x;
+				ey2 = walk_queue.back().y;
+			}
+			walk_queue.clear();
+		}
+
+		if (frame3 >= 150 && frame % sp3 == 0) {
+			FindPath(ex3, ey3, var_x, var_y);
+			if (walk_queue.size() != 0) {
+				ex3 = walk_queue.back().x;
+				ey3 = walk_queue.back().y;
+			}
+			walk_queue.clear();
+		}
+
+		if (frame4 >= 200 && frame % sp2 == 0) {
+			FindPath(ex4, ey4, var_x, var_y);
+			if (walk_queue.size() != 0) {
+				ex4 = walk_queue.back().x;
+				ey4 = walk_queue.back().y;
+			}
+			walk_queue.clear();
+		}
+
+
+		if (sup == 0) {
+			frame_old = frame;
+		}
+
+		if (map[y][x] == '0' || map[y][x + 1] == '0') {
+			sup = 1;
+			frame_old = frame;
+		}
+
+
+		if (sup == 1)
+		{
+
+			sp2 = sp3 = sp4 = sp5 = 3;
+
+			gotoxy(ex, ey);   cout << "$$";
+			gotoxy(ex2, ey2); cout << "$$";
+			gotoxy(ex3, ey3); cout << "$$";
+			gotoxy(ex4, ey4); cout << "$$";
+
+
+			var_x = sup_x;
+			var_y = sup_y;
+
+
+			if ((ex == x && ey == y) || (ex == x + 1 && ey == y) || (ex + 1 == x && ey == y) || (ex == x && ey == y + 1) || (ex == x + 1 && ey == y - 1) || (ex + 2 == x && ey == y) || (ex - 2 == x && ey == y)) {
+				pts += 100;
+				frame1 = 0;
+				gotoxy(ex, ey); cout << "  ";
+				ex = 33;
+				ey = 11;
+			}
+			if ((ex2 == x && ey2 == y) || (ex2 == x + 1 && ey2 == y) || (ex2 + 1 == x && ey2 == y) || (ex2 == x && ey2 == y + 1) || (ex2 == x + 1 && ey2 == y - 1) || (ex2 + 2 == x && ey2 == y) || (ex2 - 2 == x && ey2 == y)) {
+				pts += 100;
+				frame2 = 0;
+				gotoxy(ex2, ey2); cout << "  ";
+				ex2 = 35;
+				ey2 = 12;
+			}
+			if ((ex3 == x && ey3 == y) || (ex3 == x + 1 && ey3 == y) || (ex3 + 1 == x && ey3 == y) || (ex3 == x && ey3 == y + 1) || (ex3 == x + 1 && ey3 == y - 1) || (ex3 + 2 == x && ey3 == y) || (ex3 - 2 == x && ey3 == y)) {
+				pts += 100;
+				frame3 = 0;
+				gotoxy(ex3, ey3); cout << "  ";
+				ex3 = 33;
+				ey3 = 12;
+			}
+			if ((ex4 == x && ey4 == y) || (ex4 == x + 1 && ey4 == y) || (ex4 + 1 == x && ey4 == y) || (ex4 == x && ey4 == y + 1) || (ex4 == x + 1 && ey4 == y - 1) || (ex4 + 2 == x && ey4 == y) || (ex4 - 2 == x && ey4 == y)) {
+				pts += 100;
+				frame4 = 0;
+				gotoxy(ex4, ey4); cout << "  ";
+				ex4 = 31;
+				ey4 = 12;
+			}
+
+		}
+		else if (sup == 0) {
+			sp2 = 1;
+			sp3 = 2;
+			sp4 = 2;
+			sp5 = 3;
+
+			gotoxy(ex, ey);   cout << "D:";
+			gotoxy(ex2, ey2); cout << ":c";
+			gotoxy(ex3, ey3); cout << ">:";
+			gotoxy(ex4, ey4); cout << ":{";
+
+
+			if ((ex == x && ey == y) || (ex == x + 1 && ey == y) || (ex + 1 == x && ey == y) || (ex2 == x && ey2 == y) || (ex2 == x + 1 && ey2 == y) || (ex2 + 1 == x && ey2 == y) || (ex3 == x && ey3 == y) || (ex3 == x + 1 && ey3 == y) || (ex3 + 1 == x && ey3 == y) || (ex4 == x && ey4 == y) || (ex4 == x + 1 && ey4 == y) || (ex4 + 1 == x && ey4 == y)) {
+				lives--;
+				frame = 0;
+				frame1 = 0;
+				frame2 = 0;
+				frame3 = 0;
+				frame4 = 0;
+				ex = 33, ex2 = 35, ex3 = 33, ex4 = 31;
+				ey = 11, ey2 = 12, ey3 = 12, ey4 = 12;
+				x = 33;
+				y = 14;
+
+				if (lives == 2) {
+					gotoxy(27, 14); cout << "               ";
+					gotoxy(27, 15); cout << "  You died :(  ";
+					gotoxy(27, 16); cout << "               ";
+
+					Sleep(3000);
+					gotoxy(28, 14); cout << "            ";
+					gotoxy(28, 15); cout << "   ready?   ";
+					gotoxy(28, 16); cout << "            ";
+
+					Sleep(2000);
+					gotoxy(29, 14); cout << "          ";
+					gotoxy(29, 15); cout << "    go!   ";
+					gotoxy(29, 16); cout << "          ";
+					Sleep(500);
+				}
+				else if (lives == 1) {
+
+					gotoxy(24, 14); cout << "                     ";
+					gotoxy(24, 15); cout << "  You died again :(  ";
+					gotoxy(24, 16); cout << "    and last live    ";
+					gotoxy(24, 17); cout << "                     ";
+
+
+					Sleep(3000);
+					gotoxy(24, 14); cout << "                     ";
+					gotoxy(24, 15); cout << "        ready?       ";
+					gotoxy(24, 16); cout << "                     ";
+
+					Sleep(1500);
+					gotoxy(24, 14); cout << "                     ";
+					gotoxy(24, 15); cout << "         go!         ";
+					gotoxy(24, 16); cout << "                     ";
+					Sleep(500);
+				}
+				system("cls");
+				ShowMap();
+
+
+			}
+		}
+
+		if (frame - frame_old >= 100) {
+			sup = 0;
+		}
+
+
+		gotoxy(10, 25); cout << pts;
+		if (lives == 3) {
+			gotoxy(32, 25); cout << ":D :D ";
+		}
+		else 	if (lives == 2) {
+			gotoxy(32, 25); cout << ":D    ";
+		}
+		else 	if (lives == 1) {
+			gotoxy(32, 25); cout << "      ";
+		}
+
+		gotoxy(44, 25); cout << "Press 'Esc' to exit";
+		Sleep(150);
+		frame++;
+		frame1++;
+		frame2++;
+		frame3++;
+		frame4++;
+
+		num_dot = 0;
+		for (k = 0; k < 30; k++) {
+			for (l = 0; l < 70; l++) {
+				if (map[k][l] == '.') {
+					num_dot++;
+
+				}
+			}
+		}
+		if (GetAsyncKeyState(0x43)) {
+			num_dot = 0;
+		}
+
+		if (num_dot == 0) {
+			won(pts);
+		}
+
+		if (GetAsyncKeyState(VK_ESCAPE))
+		{
+			system("cls");
+			main();
+		}
+
+
+
+	}
+
+
+
+	return 0;
+}
+void won(int pts) {
+	string High_Score_Data[100], High_Score_Data_temp[100];
+	int j, i, c, l, highscorearr[100];
+	gotoxy(14, 13); cout << "                                        ";
+	gotoxy(14, 14); cout << "        Congratulations You won!        ";
+	gotoxy(14, 15); cout << "                                        ";
+	Sleep(3000);
+	system("cls");
+	ifstream myfile("Highscore.txt");
+	if (myfile.is_open())
+	{
+		for (i = 0; myfile.good(); i++)
+		{
+			getline(myfile, High_Score_Data[i]);
+		}
+		myfile.close();
+	}
+
+	for (j = 0; j < i; j++)
+	{
+		High_Score_Data_temp[j] = High_Score_Data[j];
+	}
+
+	for (l = 0; l < i; l++) {
+		for (c = 0; c < High_Score_Data[l].length(); c++) { if (isdigit(High_Score_Data[l][c])) break; }
+		High_Score_Data[l] = High_Score_Data[l].substr(c, High_Score_Data[l].length() - c);
+		highscorearr[l] = atoi(High_Score_Data[l].c_str());
+	}
+	l = 0;
+	for (c = 0; c < i; c++) {
+		if (pts > highscorearr[l]) {
+			l++;
+		}
+	}
+	if (l == i) {
+		highscore(pts);
+	}
+	else {
+		main();
+	}
+}
+
+void highscore(int pts) {
+	int choice = 1;
+	int enter = 0;
+	int i = 0;
+	int l = 0;
+	int ord[100];
+	int highscore[100];
+	int j;
+	int temp;
+	int temp2;
+	vector<int> numbers;
+	string High_Score_Data[100];
+	string High_Score_Data_temp[100];
+	bool arr = true;
+	string name;
+	system("cls");
+	cout << ">>>>>>>>>Pacman<<<<<<<<<" << endl << endl;
+
+
+		if (pts != 0) {
+	cout << "    ENTER YOUR NAME," << endl;
+	cout << "      HIGH SCORER!" << endl << endl;
+	cout << "     Do you want to " << endl;
+	cout << "    insert your name " << endl << endl << endl;
+	cout << "          YES";
+	cout << endl << endl;
+	cout << "        GO BACK";
+	Sleep(100);
+	while (1) {
+		if (GetAsyncKeyState(VK_UP)) { choice = 1; enter = 0; }
+		if (GetAsyncKeyState(VK_DOWN)) { choice = 2; enter = 0; }
+		if (GetAsyncKeyState(VK_RETURN) && i > 3) {
+			enter = 1;
+			cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		}
+		if (i % 6 == 0) arr = !arr;
+
+
+		if (choice == 1) {
+
+			if (arr) {
+				gotoxy(9, 9); 	cout << "{";
+				gotoxy(13, 9); 	cout << "}";
+
+			}
+			else {
+				gotoxy(9, 9); 	cout << " ";
+				gotoxy(13, 9); 	cout << " ";
+			}
+			gotoxy(7, 11); 	cout << " ";
+			gotoxy(15, 11); cout << " ";
+
+		}
+
+		else if (choice == 2) {
+			gotoxy(9, 9); 	cout << " ";
+			gotoxy(13, 9); 	cout << " ";
+
+			if (arr) {
+				gotoxy(7, 11); 	cout << "{";
+				gotoxy(15, 11); cout << "}";
+			}
+			else {
+				gotoxy(7, 11); 	cout << " ";
+				gotoxy(15, 11); cout << " ";
+			}
+		}
+		if (choice == 1 && enter == 1) {
+
+			system("cls");
+			cout << ">>>>>>>>>Pacman<<<<<<<<<";
+			gotoxy(0, 2);  cout << "    ENTER YOUR NAME,  ";
+			gotoxy(0, 3);  cout << "      HIGH SCORER!    ";
+			gotoxy(0, 5);  cout << "                      ";
+			gotoxy(0, 6);  cout << "                      ";
+			gotoxy(0, 9);  cout << "                      ";
+			gotoxy(0, 11); cout << "                      ";
+			gotoxy(0, 7);  cout << "------------------";
+			gotoxy(18, 7);  cout <<"{ENTER}";
+			gotoxy(0, 10);
+			Sleep(100);
+
+
+			gotoxy(0, 6); getline(cin, name);
+
+			fstream hs;
+			hs.open("Highscore.txt", fstream::in | fstream::out | fstream::app);
+			hs.width(12);
+			hs.fill('.');
+			hs << left << name ;
+			hs.width(12);
+			hs.fill('.');
+			hs << right << pts << endl;
+			hs.close();
+
+			ifstream myfile("Highscore.txt");
+			if (myfile.is_open())
+			{
+				for (i = 0; myfile.good(); i++)
+				{
+					getline(myfile, High_Score_Data[i]);
+				}
+				myfile.close();
+			}
+			int c;
+			for (int l = 0; l < i; l++) {
+				for (c = 0; c < High_Score_Data[l].length(); c++) { if (isdigit(High_Score_Data[l][c])) break; }
+				High_Score_Data[l] = High_Score_Data[l].substr(c, High_Score_Data[l].length() - c);
+				highscore[l] = atoi(High_Score_Data[l].c_str());
+			}
+			
+			system("cls");
+			main();
+		}
+		else if (choice == 2 && enter == 1) {
+			Sleep(100);
+			system("cls");
+			main();
+		}
+		Sleep(100);
+		i++;
+
+
+	}
+
+	}
+else if(pts == 0){
+	system("cls");
+	cout << "The pacman's high score list" << endl << endl;
+	ifstream myfile("Highscore.txt");
+	if (myfile.is_open())
+	{
+		for (i = 0; myfile.good(); i++)
+		{
+			getline(myfile, High_Score_Data[i]);
+		}
+		myfile.close();
+	}
+
+	for (j = 0; j < i; j++)
+	{
+		High_Score_Data_temp[j] = High_Score_Data[j];
+	}
+
+	int c;
+	for (l = 0; l < i; l++) {
+		for (c = 0; c < High_Score_Data[l].length(); c++) { if (isdigit(High_Score_Data[l][c])) break; }
+		High_Score_Data[l] = High_Score_Data[l].substr(c, High_Score_Data[l].length() - c);
+		highscore[l] = atoi(High_Score_Data[l].c_str());
+	}
+	l = 0;
+	for (c = 0; c < i; c++) {
+		ord[c] = l;
+		l++;
+	}
+
+	for (l = 0; l<i; l++)
+	{
+		for (j = l + 1; j<i; j++)
+		{
+			if (highscore[l] > highscore[j])
+			{
+				temp = highscore[l];
+				highscore[l] = highscore[j];
+				highscore[j] = temp;
+
+				temp = ord[l];
+				ord[l] = ord[j];
+				ord[j] = temp;
+			}
+		}
+	}
+
+	i--;
+	j = 1;
+	for (i; i>0; i--)
+	{
+		cout << j << "."; 
+		gotoxy(4, j+1); cout << High_Score_Data_temp[ord[i]] << endl;
+		j++;
+	}
+	l = 0;
+	c = 0;
+	j += 2;
+	gotoxy(0, j); cout << "        GO BACK";
+	while (l == 0) {
+		if (GetAsyncKeyState(VK_RETURN) && c > 3) {
+			l = 1;
+			cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		}
+		if (c % 6 == 0) arr = !arr;
+
+		if (arr) {
+			gotoxy(7, j); 	cout << "{";
+			gotoxy(15, j); 	cout << "}";
+
+		}
+		else {
+			gotoxy(7, j); 	cout << " ";
+			gotoxy(15, j); 	cout << " ";
+		}
+
+		Sleep(100);
+		c++;
+	}
+
+
+}
+	system("cls");
+	main();
+}
+void load_the_map() {
+	int i = 0;
+	string line[30];
+	ifstream myfile("file1.txt");
+
+	if (myfile.is_open())
+
+	{
+		while (myfile.good())
+
+		{
+			getline(myfile, line[i]);
+			strcpy_s(map[i], line[i].c_str());
+			i++;
+		}
+
+		myfile.close();
+
+	}
+}
+
+vector<int> read_numbers(string file_name)
+{
+	ifstream infile;
+	infile.open(file_name);
+	vector<int> numbers;
+
+	if (infile.is_open())
+	{
+		int num;
+
+		for (int i = 0; i << 6; i++)
+		{
+			if (infile >> num)
+			{
+				infile >> num;
+				numbers.push_back(num);
+			}
+		}
+	}
+
+	return numbers;
+}

@@ -1,0 +1,1187 @@
+#include <iostream>
+#include <iomanip>
+#include <stdio.h>
+#include <windows.h>
+#include <string>
+#include <string.h>
+#include <vector>
+#include <fstream>
+#undef max
+
+using namespace std;
+
+
+// variables 
+char map[30][70];
+char tmp_map[30][70];
+int x;
+int y;
+string pacman , lamey, cortex, bob, crusher;
+int ex, ex2, ex3, ex4;
+int ey, ey2, ey3, ey4;
+int pts;
+int target_x;
+int target_y;
+int old_x;
+int old_y;
+int con;
+int con2;
+int i;
+int lives;
+int frame, frame_old ;
+int frame1, frame2, frame3, frame4;
+int sp2 = 1, sp3 = 2, sp4 = 3, sp5 = 4;
+int k, l, num_dot;
+bool power_pallet;
+int choice;
+int enter;
+bool blinking;
+int wait, wait2, wait3, wait4;
+int chase_x, chase_x2, chase_x3, chase_x4;
+int chase_y, chase_y2, chase_y3, chase_y4;
+
+void assign_variables(int &x,int &y,string &pacman,int &ex, int &ex2, int &ex3, int &ex4,int &ey, int &ey2, int &ey3, int &ey4,int &pts,int &target_x,int &target_y,int &old_x,int &old_y,int &con,int &con2,int &i,int &lives,int &frame, int &frame_old,int &frame1, int &frame2, int &frame3, int &frame4,int &k, int &l, int &num_dot,bool &power_pallet,int &choice,int &enter, bool &blinking) {
+	x = 33;
+	y = 14;
+	ex = 33, ex2 = 35, ex3 = 33, ex4 = 31;
+	ey = 11, ey2 = 12, ey3 = 12, ey4 = 12;
+	pts = 0;
+	target_x = 0;
+	target_y = 0;
+	con = 0;
+	con2 = 0;
+	i = 0;
+	lives = 3;
+	frame = 0, frame_old = 0;
+	frame1 = 0, frame2 = 0, frame3 = 0, frame4 = 0;
+	k = 0, l = 0, num_dot = 507;
+	power_pallet = false;
+	pacman = ":)";
+}
+
+
+void assign_variables_for_animation(int &x, int &y, string &pacman, int &ex, int &ex2, int &ex3, int &ex4, int &ey, int &ey2, int &ey3, int &ey4, int &pts, int &target_x, int &target_y, int &old_x, int &old_y, int &con, int &con2, int &i, int &lives, int &frame, int &frame_old, int &frame1, int &frame2, int &frame3, int &frame4, int &k, int &l, int &num_dot, bool &power_pallet, int &choice, int &enter, bool &blinking,int &wait, int &wait2, int &wait3, int &wait4) {
+	x = 27;
+	y = 9;
+	ex = 19, ex2 = 13, ex3 = 7, ex4 = 1;
+	ey = 9, ey2 = 9, ey3 = 9, ey4 = 9;
+	target_x = 0;
+	target_y = 0;
+	con =  4;
+	con2 = 4;
+	i = 0;
+	pts = 0;
+	frame = 0, frame_old = 0;
+	frame1 = 0, frame2 = 0, frame3 = 0, frame4 = 0;
+	k = 0, l = 0;
+	power_pallet = false;
+	choice = 1;
+	enter = 0;
+	pacman = ":)";
+	blinking = true;
+	wait = 0;
+	wait2 = 0;
+	wait3 = 0;	
+	wait4 = 0;
+
+}
+
+
+struct walk {
+	short walk_count;
+	short x;
+	short y;
+	short back;
+};
+struct target {
+	short x;
+	short y;
+};
+vector<target> walk_queue;
+vector<walk> BFSArray;
+
+
+//function prototypes
+
+void ShowMap();
+void won(int pts);
+void highscorefunc(int pts);
+void load_the_map();
+void load_empty_map();
+void load_empty_map_highscore();
+void gotoxy(short x, short y);
+void AddArray(int x, int y, int wc, int back);
+void FindPath(int sx, int sy, int x, int y);
+void printFigures();
+void check_for_inputs(int &con2, int &num_dot, int pts);
+
+
+//classes
+
+class CCreature {
+
+	public:
+		void Findpath(int frame ,int sp, int x ,int y , int &ex ,int &ey , int fixspeed) {
+
+			if (frame >= fixspeed && frame % sp == 0) {
+				FindPath(ex, ey, x, y);
+				if (walk_queue.size() != 0) {
+					ex = walk_queue.back().x;
+					ey = walk_queue.back().y;
+				}
+				walk_queue.clear();
+			}
+
+
+		}
+		void killing_monster(int &frame, int &pts, int &ex, int &ey, int old_ex, int old_ey) {
+
+			if ((ex == x && ey == y) || (ex == x + 1 && ey == y) || (ex + 1 == x && ey == y) || (ex == x && ey == y + 1) || (ex == x + 1 && ey == y - 1) || (ex + 2 == x && ey == y) || (ex - 2 == x && ey == y)) {
+				pts += 100;
+				frame = 0;
+				gotoxy(ex, ey); cout << "  ";
+				ex = old_ex;
+				ey = old_ey;
+			}
+
+		}
+		void killing_monster_main(int &frame, int &pts, int &ex, int &ey, int old_ex, int old_ey,string &monster, string new_monster ,string name,int &wait) {
+
+			if ((ex == x && ey == y) || (ex == x + 1 && ey == y) || (ex + 1 == x && ey == y) || (ex == x && ey == y + 1) || (ex == x + 1 && ey == y - 1) || (ex + 2 == x && ey == y) || (ex - 2 == x && ey == y)) {
+				pts += 100;
+				gotoxy(ex, ey); cout << "  ";
+				ex = old_ex;
+				ey = old_ey;
+				wait = 500;
+				monster = new_monster;
+
+				if (ex == 58 && ey == 2) {
+					gotoxy(ex - 7, ey); cout << name;
+				}
+				else if(ex == 58 && ey == 8){
+					gotoxy(ex - 4, ey); cout << name;
+				}
+				else if ((ex == 10 && ey == 8) || (ex == 10 && ey == 2)) {
+					gotoxy(ex+3, ey); cout << name;
+				}
+			}
+
+		}
+
+		void check_death(int &x, int &y, int &ex, int &ey, int &ex2, int &ey2, int &ex3, int &ey3, int &ex4, int &ey4, int &frame, int &frame1, int &frame2, int &frame3, int &frame4, int &lives) {
+			if ((ex == x && ey == y) || (ex == x + 1 && ey == y) || (ex + 1 == x && ey == y) || (ex2 == x && ey2 == y) || (ex2 == x + 1 && ey2 == y) || (ex2 + 1 == x && ey2 == y) || (ex3 == x && ey3 == y) || (ex3 == x + 1 && ey3 == y) || (ex3 + 1 == x && ey3 == y) || (ex4 == x && ey4 == y) || (ex4 == x + 1 && ey4 == y) || (ex4 + 1 == x && ey4 == y)) {
+				lives--;
+				frame = 0;
+				frame1 = 0;
+				frame2 = 0;
+				frame3 = 0;
+				frame4 = 0;
+				ex = 33, ex2 = 35, ex3 = 33, ex4 = 31;
+				ey = 11, ey2 = 12, ey3 = 12, ey4 = 12;
+				x = 33;
+				y = 14;
+
+				if (lives == 2) {
+
+					gotoxy(27, 14); cout << "               ";
+					gotoxy(27, 15); cout << "  You died :(  ";
+					gotoxy(27, 16); cout << "               ";
+
+					Sleep(3000);
+					gotoxy(28, 14); cout << "            ";
+					gotoxy(28, 15); cout << "   ready?   ";
+					gotoxy(28, 16); cout << "            ";
+
+					Sleep(2000);
+					gotoxy(29, 14); cout << "          ";
+					gotoxy(29, 15); cout << "    go!   ";
+					gotoxy(29, 16); cout << "          ";
+					Sleep(500);
+					system("cls");
+					ShowMap();
+					gotoxy(32, 25); cout << ":)    ";
+
+				}
+				else if (lives == 1) {
+
+					gotoxy(24, 14); cout << "                     ";
+					gotoxy(24, 15); cout << "  You died again :(  ";
+					gotoxy(24, 16); cout << "    and last live    ";
+					gotoxy(24, 17); cout << "                     ";
+
+
+					Sleep(3000);
+					gotoxy(24, 14); cout << "                     ";
+					gotoxy(24, 15); cout << "        ready?       ";
+					gotoxy(24, 16); cout << "                     ";
+
+					Sleep(1500);
+					gotoxy(24, 14); cout << "                     ";
+					gotoxy(24, 15); cout << "         go!         ";
+					gotoxy(24, 16); cout << "                     ";
+					Sleep(500);
+					system("cls");
+					ShowMap();
+					gotoxy(32, 25); cout << ":)    ";
+
+				}
+
+
+
+			}
+
+
+		}
+		void chasing_in_a_loop(int &x, int &y, int ex, int ey) {
+				 if (ex == 58 && ey == 2) {
+					x = 58;
+					y = 8;
+				}
+				else if (ex == 58 && ey == 8) {
+					x = 10;
+					y = 8;
+				}
+				else if (ex == 10 && ey == 8) {
+					x = 10;
+					y = 2;
+				}
+				else if (ex == 10 && ey == 2) {
+					x = 58;
+					y = 2;
+				}
+
+		}
+};
+class CDungeon {
+private:
+	int k, l;
+
+public:
+	void check_gate_and_powerpallet(int &x, int &y, bool &power_pallet){
+		if (map[y][x - 1] == '<') {
+			for (k = 0; k < 30; k++) {
+				for (l = 0; l < 70; l++) {
+					if (map[k][l] == '>') {
+						x = l - 3;
+						y = k;
+					}
+				}
+			}
+		}
+		else if (map[y][x + 2] == '>') {
+			for (k = 0; k < 30; k++) {
+				for (l = 0; l < 70; l++) {
+					if (map[k][l] == '<') {
+						x = l + 2;
+						y = k;
+					}
+				}
+			}
+		}
+
+		if (map[y][x] == '0' || map[y][x + 1] == '0') {
+			power_pallet = true;
+		}
+	}
+	void print(int x, int y, int ex, int ey, int ex2, int ey2, int ex3, int ey3, int ex4, int ey4 , int old_x , int old_y) {
+		gotoxy(x, y); cout << pacman;
+
+
+		gotoxy(ex, ey); cout << map[ey][ex];
+		gotoxy(ex + 1, ey); cout << map[ey][ex + 1];
+
+		gotoxy(ex2, ey2); cout << map[ey2][ex2];
+		gotoxy(ex2 + 1, ey2); cout << map[ey2][ex2 + 1];
+
+		gotoxy(ex3, ey3); cout << map[ey3][ex3];
+		gotoxy(ex3 + 1, ey3); cout << map[ey3][ex3 + 1];
+
+		gotoxy(ex4, ey4); cout << map[ey4][ex4];
+		gotoxy(ex4 + 1, ey4); cout << map[ey4][ex4 + 1];
+
+		gotoxy(ex4, ey4); cout << map[ey4][ex4];
+		gotoxy(ex4 + 1, ey4); cout << map[ey4][ex4 + 1];
+
+		map[old_y][old_x] = ' ';
+		map[old_y][old_x + 1] = ' ';
+
+	}
+	void print_without_pacman(int ex, int ey, int ex2, int ey2, int ex3, int ey3, int ex4, int ey4, int old_x, int old_y) {
+
+		gotoxy(ex, ey); cout << map[ey][ex];
+		gotoxy(ex + 1, ey); cout << map[ey][ex + 1];
+
+		gotoxy(ex2, ey2); cout << map[ey2][ex2];
+		gotoxy(ex2 + 1, ey2); cout << map[ey2][ex2 + 1];
+
+		gotoxy(ex3, ey3); cout << map[ey3][ex3];
+		gotoxy(ex3 + 1, ey3); cout << map[ey3][ex3 + 1];
+
+		gotoxy(ex4, ey4); cout << map[ey4][ex4];
+		gotoxy(ex4 + 1, ey4); cout << map[ey4][ex4 + 1];
+
+		gotoxy(ex4, ey4); cout << map[ey4][ex4];
+		gotoxy(ex4 + 1, ey4); cout << map[ey4][ex4 + 1];
+
+		map[old_y][old_x] = ' ';
+		map[old_y][old_x + 1] = ' ';
+	}
+
+	void manage_movement(int &x, int &y, int &con, int &pts, string &pacman) {
+
+		if ((map[y - 1][x] == ' ' || map[y - 1][x] == '.' || map[y - 1][x] == '0') && (map[y - 1][x + 1] == ' ' || map[y - 1][x + 1] == '.' || map[y - 1][x + 1] == '0') && con == 1) {
+			if (map[y - 1][x] == '.' || map[y - 1][x] == '0') { pts += 2; }
+			y--;
+			con = 1;
+		}
+		if ((map[y + 1][x] == ' ' || map[y + 1][x] == '.' || map[y + 1][x] == '0') && (map[y + 1][x + 1] == ' ' || map[y + 1][x + 1] == '.' || map[y + 1][x + 1] == '0') && con == 2) {
+			if (map[y + 1][x] == '.' || map[y + 1][x] == '0') { pts += 2; }
+			y++;
+			con = 2;
+		}
+
+		if ((map[y][x - 2] == ' ' || map[y][x - 2] == '.' || map[y][x - 2] == '0') && (map[y][x - 1] != '#' && map[y][x - 1] != '|') && con == 3) {
+			if (map[y][x - 1] == '.' || map[y][x - 2] == '.') pts += 2;
+			pacman = ":)";
+			x -= 2; con = 3;
+		}
+		else if ((map[y][x - 1] == ' ' || map[y][x - 1] == '.' || map[y][x - 1] == '0') && con == 3) {
+			if (map[y][x - 1] == '.' || map[y][x - 1] == '0') pts += 2;
+			pacman = ":)";
+			x -= 1; con = 3;
+		}
+
+
+		if ((map[y][x + 3] == ' ' || map[y][x + 3] == '.' || map[y][x + 3] == '0') && (map[y][x + 2] != '#' && map[y][x + 2] != '|') && con == 4) {
+			if (map[y][x + 1] == '.' || map[y][x + 2] == '.' || map[y][x + 1] == '0' || map[y][x + 2] == '0') pts += 2;
+			pacman = "(:";
+			x += 2; con = 4;
+		}
+		else if ((map[y][x + 2] == ' ' || map[y][x + 2] == '.' || map[y][x + 2] == '0') && con == 4) {
+			if (map[y][x + 2] == '.' || map[y][x + 2] == '0') pts += 2;
+			pacman = "(:";
+			x += 1; con = 4;
+		}
+
+	}
+
+	void continue_moving(int &x, int &y, int &con, int &con2) {
+
+		if (((map[y - 1][x] == ' ' || map[y - 1][x] == '.' || map[y - 1][x] == '0') && (map[y - 1][x + 1] == ' ' || map[y - 1][x + 1] == '.' || map[y - 1][x + 1] == '0')) && con2 == 1) { con = 1; }
+		if (((map[y + 1][x] == ' ' || map[y + 1][x] == '.' || map[y + 1][x] == '0') && (map[y + 1][x + 1] == ' ' || map[y + 1][x + 1] == '.' || map[y + 1][x + 1] == '0')) && con2 == 2) { con = 2; }
+		if (((map[y][x - 2] == ' ' || map[y][x - 2] == '.' || map[y][x - 2] == '0') && (map[y][x - 1] != '#' && map[y][x - 1] != '|') || (map[y][x - 1] == ' ' || map[y][x - 1] == '.' || map[y][x - 1] == '0')) && con2 == 3) { con = 3; }
+		if (((map[y][x + 3] == ' ' || map[y][x + 3] == '.' || map[y][x + 3] == '0') && (map[y][x + 2] != '#' && map[y][x + 2] != '|') || (map[y][x + 2] == ' ' || map[y][x + 2] == '.' || map[y][x + 2] == '0')) && con2 == 4) { con = 4; }
+
+	}
+
+
+
+};
+class CRolePlayingGame {
+
+public:
+	void For_mainmenue_animation(int frame) {
+		CCreature Pacman, monster , high_score;
+		CDungeon Map;
+
+		gotoxy(x, y); cout << "  ";
+
+		old_x = x;
+		old_y = y;
+
+		if ((x == 0) && (y == 1)) {
+
+
+
+		}
+		else {
+			Map.continue_moving(x, y, con, con2);
+			Map.manage_movement(x, y, con, pts, pacman);
+			Map.check_gate_and_powerpallet(x, y, power_pallet);
+		}
+
+		if (power_pallet) {
+			con = 3;
+			con2 = 3;
+		}
+		else {
+			con = 4;
+			con2 = 4;
+		}
+		if ((x == 0) && (y == 1)) {
+			Map.print_without_pacman(ex, ey, ex2, ey2, ex3, ey3, ex4, ey4, old_x, old_y);
+
+		}
+		else {
+			Map.print(x, y, ex, ey, ex2, ey2, ex3, ey3, ex4, ey4, old_x, old_y);
+		}
+		if (power_pallet == false) {
+			target_x = x;
+			target_y = y;
+			frame_old = frame;
+			sp2 = 1;
+			lamey = cortex = bob = crusher = "$$";
+
+			if ((x == 0) && (y == 1)) {
+
+				high_score.chasing_in_a_loop(chase_x, chase_y, ex, ey);
+				monster.Findpath(frame, sp2, chase_x, chase_y, ex, ey, 0);
+
+				high_score.chasing_in_a_loop(chase_x2, chase_y2, ex2, ey2);
+				monster.Findpath(frame, sp2, chase_x2, chase_y2, ex2, ey2, 0);
+
+				high_score.chasing_in_a_loop(chase_x3, chase_y3, ex3, ey3);
+				monster.Findpath(frame, sp2, chase_x3, chase_y3, ex3, ey3, 0);
+
+				high_score.chasing_in_a_loop(chase_x4, chase_y4, ex4, ey4);
+				monster.Findpath(frame, sp2, chase_x4, chase_y4, ex4, ey4, 0);
+
+
+			}
+			else {
+				monster.Findpath(frame, sp2, target_x, target_y, ex, ey, 0);
+				monster.Findpath(frame, sp2, target_x, target_y, ex2, ey2, 0);
+				monster.Findpath(frame, sp2, target_x, target_y, ex3, ey3, 0);
+				monster.Findpath(frame, sp2, target_x, target_y, ex4, ey4, 0);
+			}
+
+			gotoxy(ex, ey);   cout << "D:";
+			gotoxy(ex2, ey2); cout << "):";
+			gotoxy(ex3, ey3); cout << ">:";
+			gotoxy(ex4, ey4); cout << "}:";
+
+		}
+		else if (power_pallet == true) {
+
+
+			sp2 = 3;
+
+
+			monster.Findpath(frame, sp2, 0, 9, ex, ey, wait);
+			monster.Findpath(frame, sp2, 0, 9, ex2, ey2, wait2);
+			monster.Findpath(frame, sp2, 0, 9, ex3, ey3, wait3);
+			monster.Findpath(frame, sp2, 0, 9, ex4, ey4, wait4);
+
+
+			monster.killing_monster_main(frame, pts, ex, ey, 10, 2, lamey, "D:", "lamey",wait);
+			monster.killing_monster_main(frame, pts, ex2, ey2, 58, 2, cortex,":c", "cortex",wait2);
+			monster.killing_monster_main(frame, pts, ex3, ey3, 58, 8, bob,":<", "bob",wait3);
+			monster.killing_monster_main(frame, pts, ex4, ey4, 10, 8, crusher,"}:", "crusher",wait4);
+
+			gotoxy(ex, ey); cout << lamey;
+			gotoxy(ex2, ey2); cout << cortex;
+			gotoxy(ex3, ey3); cout << bob;
+			gotoxy(ex4, ey4); cout << crusher;
+		}
+
+
+		if (frame - frame_old >= 100) {
+			power_pallet = false;
+		}
+	}
+
+
+	void start_the_game() {
+		while (lives > 0) {
+
+			CCreature Pacman, monster;
+			CDungeon Map;
+
+			gotoxy(x, y); cout << "  ";
+
+			old_x = x;
+			old_y = y;
+
+			check_for_inputs(con2, num_dot, pts);
+
+
+			Map.continue_moving(x, y, con, con2);
+			Map.manage_movement(x, y, con, pts, pacman);
+			Map.check_gate_and_powerpallet(x, y, power_pallet);
+			Map.print(x, y, ex, ey, ex2, ey2, ex3, ey3, ex4, ey4, old_x, old_y);
+
+
+			if (power_pallet == false) {
+				target_x = x;
+				target_y = y;
+				frame_old = frame;
+				sp2 = 1;
+				sp3 = 2;
+				sp4 = 2;
+				sp5 = 3;
+
+				monster.Findpath(frame1, sp5, target_x, target_y, ex, ey, 50);
+				monster.Findpath(frame2, sp4, target_x, target_y, ex2, ey2, 100);
+				monster.Findpath(frame3, sp3, target_x, target_y, ex3, ey3, 150);
+				monster.Findpath(frame4, sp2, target_x, target_y, ex4, ey4, 200);
+
+				gotoxy(ex, ey);   cout << "D:";
+				gotoxy(ex2, ey2); cout << ":c";
+				gotoxy(ex3, ey3); cout << ">:";
+				gotoxy(ex4, ey4); cout << ":{";
+
+				Pacman.check_death(x, y, ex, ey, ex2, ey2, ex3, ey3, ex4, ey4, frame, frame1, frame2, frame3, frame4, lives);
+			}
+			else if (power_pallet == true) {
+
+				target_x = 65 - x;
+				target_y = 24 - y;
+				sp2 = sp3 = sp4 = sp5 = 3;
+
+				monster.Findpath(frame1, sp5, target_x, target_y, ex, ey, 50);
+				monster.Findpath(frame2, sp4, target_x, target_y, ex2, ey2, 100);
+				monster.Findpath(frame3, sp3, target_x, target_y, ex3, ey3, 150);
+				monster.Findpath(frame4, sp2, target_x, target_y, ex4, ey4, 200);
+
+				gotoxy(ex, ey); cout << "$$";
+				gotoxy(ex2, ey2); cout << "$$";
+				gotoxy(ex3, ey3); cout << "$$";
+				gotoxy(ex4, ey4); cout << "$$";
+
+				monster.killing_monster(frame1, pts, ex, ey, 33, 11);
+				monster.killing_monster(frame2, pts, ex2, ey2, 35, 12);
+				monster.killing_monster(frame3, pts, ex3, ey3, 33, 12);
+				monster.killing_monster(frame4, pts, ex4, ey4, 31, 12);
+			}
+
+
+			if (frame - frame_old >= 100) {
+				power_pallet = false;
+			}
+
+
+			gotoxy(10, 25); cout << pts;
+			Sleep(125);
+			frame++;
+			frame1++;
+			frame2++;
+			frame3++;
+			frame4++;
+
+			if (num_dot == 0) {
+				won(pts);
+			}
+			num_dot = 0;
+			for (k = 0; k < 30; k++) {
+				for (l = 0; l < 70; l++) {
+					if (map[k][l] == '.') {
+						num_dot++;
+
+					}
+				}
+			}
+
+
+
+		}
+
+	}
+
+};
+
+
+void main()
+{
+	CRolePlayingGame start;
+	assign_variables_for_animation(x, y, pacman, ex, ex2, ex3, ex4, ey, ey2, ey3, ey4, pts, target_x, target_y, old_x, old_y, con, con2, i, lives, frame, frame_old, frame1, frame2, frame3, frame4, k, l, num_dot, power_pallet, choice, enter, blinking, wait, wait2, wait3, wait4);
+	load_empty_map_highscore();
+	system("cls");
+	ShowMap();
+
+	gotoxy(21, 10);  cout << " ________________________";
+	gotoxy(21, 11);  cout << "|                        |";
+	gotoxy(21, 12);  cout << "|                        |";
+	gotoxy(21, 13);  cout << "|       Play Game        |";
+	gotoxy(21, 14);  cout << "|       Highscore        |";
+	gotoxy(21, 15);  cout << "|       EXIT GAME        |";
+	gotoxy(21, 16);  cout << "|                        |";
+	gotoxy(21, 17);  cout << "|________________________|";
+
+	while (1) {
+		if (GetAsyncKeyState(VK_UP) && choice != 1) { choice--; enter = 0; }
+		if (GetAsyncKeyState(VK_DOWN) && choice != 3) { choice++; enter = 0; }
+		if (GetAsyncKeyState(VK_RETURN) && i > 3) {
+			enter = 1;
+			cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		}
+		if (i % 4 == 0) blinking = !blinking;
+			frame++;
+			start.For_mainmenue_animation(frame);
+
+		if (choice == 1) {
+
+			if (blinking) {
+				gotoxy(39, 13); cout << "<--";
+			}
+			else {
+				gotoxy(39, 13); cout << "   ";
+			}
+			gotoxy(39, 14); cout << "   ";
+
+		}
+		else if (choice == 2) {
+			gotoxy(39, 13); cout << "   ";
+			gotoxy(39, 15); cout << "   ";
+
+			if (blinking) {
+				gotoxy(39, 14); cout << "<--";
+			}
+			else {
+				gotoxy(39, 14); cout << "   ";
+			}
+		}
+		else if (choice == 3) {
+			gotoxy(39, 14); cout << "   ";
+
+			if (blinking) {
+				gotoxy(39, 15); cout << "<--";
+			}
+			else {
+				gotoxy(39, 15); cout << "   ";
+			}
+		}
+
+
+		if (choice == 1 && enter == 1) {
+			break;
+		}
+		else if (choice == 2 && enter == 1) {
+			enter = 0;
+			assign_variables(x, y, pacman, ex, ex2, ex3, ex4, ey, ey2, ey3, ey4, pts, target_x, target_y, old_x, old_y, con, con2, i, lives, frame, frame_old, frame1, frame2, frame3, frame4, k, l, num_dot, power_pallet, choice, enter, blinking);
+			highscorefunc(pts);
+		}
+		else if (choice == 3 && enter == 1) {
+			cout << endl << endl;
+			exit(0);
+		}
+		Sleep(125);
+		i++;
+
+
+	}
+	assign_variables(x, y, pacman, ex, ex2, ex3, ex4, ey, ey2, ey3, ey4, pts, target_x, target_y, old_x, old_y, con, con2, i, lives, frame, frame_old, frame1, frame2, frame3, frame4, k, l, num_dot, power_pallet, choice, enter, blinking);
+	system("cls");
+	load_the_map();
+	printFigures();
+
+	gotoxy(21, 10);  cout << " ________________________";
+	gotoxy(21, 11);  cout << "|                        |";
+	gotoxy(21, 12);  cout << "|                        |";
+	gotoxy(21, 13);  cout << "|                        |";
+	gotoxy(21, 14);  cout << "|       GET READY!       |";
+	gotoxy(21, 15);  cout << "|                        |";
+	gotoxy(21, 16);  cout << "|                        |";
+	gotoxy(21, 17);  cout << "|________________________|";
+
+	Sleep(3000);
+	gotoxy(21, 10);  cout << " ________________________";
+	gotoxy(21, 11);  cout << "|                        |";
+	gotoxy(21, 12);  cout << "|                        |";
+	gotoxy(21, 13);  cout << "|                        |";
+	gotoxy(21, 14);  cout << "|           GO!          |";
+	gotoxy(21, 15);  cout << "|                        |";
+	gotoxy(21, 16);  cout << "|                        |";
+	gotoxy(21, 17);  cout << "|________________________|";
+	Sleep(500);
+
+
+	load_the_map();
+	printFigures();
+
+	start.start_the_game();
+	
+
+}
+	void check_for_inputs(int &con2, int &num_dot, int pts) {
+		if (GetAsyncKeyState(VK_UP)) { con2 = 1; }
+		if (GetAsyncKeyState(VK_DOWN)) { con2 = 2; }
+		if (GetAsyncKeyState(VK_LEFT)) { con2 = 3; }
+		if (GetAsyncKeyState(VK_RIGHT)) { con2 = 4; }
+		if (GetAsyncKeyState(0x43)) {
+			num_dot = 0;
+		}
+
+		if (GetAsyncKeyState(VK_ESCAPE))
+		{
+			system("cls");
+			main();
+		}
+	}
+
+
+void won(int pts) {
+	string High_Score_Data[100], High_Score_Data_temp[100];
+	int j, i, c, l, highscorearr[100];
+	gotoxy(20, 12);  cout << " __________________________ ";
+	gotoxy(20, 13);  cout << "|                          |";
+	gotoxy(20, 14);  cout << "| Congratulations You won! |";
+	gotoxy(20, 15);  cout << "|__________________________|";
+
+	Sleep(3000);
+	system("cls");
+	ifstream myfile("Highscore.txt");
+	if (myfile.is_open())
+	{
+		for (i = 0; myfile.good(); i++)
+		{
+			getline(myfile, High_Score_Data[i]);
+		}
+		myfile.close();
+	}
+
+	for (j = 0; j < i; j++)
+	{
+		High_Score_Data_temp[j] = High_Score_Data[j];
+	}
+
+	for (l = 0; l < i; l++) {
+		for (c = 0; c < High_Score_Data[l].length(); c++) { if (isdigit(High_Score_Data[l][c])) break; }
+		High_Score_Data[l] = High_Score_Data[l].substr(c, High_Score_Data[l].length() - c);
+		highscorearr[l] = atoi(High_Score_Data[l].c_str());
+	}
+	l = 0;
+	for (c = 0; c < i; c++) {
+		if (pts > highscorearr[l]) {
+			l++;
+		}
+	}
+	if (l == i) {
+		highscorefunc(pts);
+	}
+	else {
+		main();
+	}
+}
+
+void highscorefunc(int pts) {
+	int choice = 1;
+	int enter = 0;
+	int i = 0;
+	int l = 0;
+	int ord[100];
+	int highscore[100];
+	int j;
+	int temp;
+	int temp2;
+	vector<int> numbers;
+	string High_Score_Data[100];
+	string High_Score_Data_temp[100];
+	string name;
+	system("cls");
+	CRolePlayingGame start;
+
+
+	if (pts != 0) {
+		assign_variables_for_animation(x, y, pacman, ex, ex2, ex3, ex4, ey, ey2, ey3, ey4, pts, target_x, target_y, old_x, old_y, con, con2, i, lives, frame, frame_old, frame1, frame2, frame3, frame4, k, l, num_dot, power_pallet, choice, enter, blinking, wait,wait2,wait3,wait4);
+		load_empty_map_highscore();
+		system("cls");
+		ShowMap();
+		gotoxy(21, 10);  cout << " ________________________";
+		gotoxy(21, 11);  cout << "|    ENTER YOUR NAME,    |";
+		gotoxy(21, 12);  cout << "|      HIGH SCORER!      |";
+		gotoxy(21, 13);  cout << "|                        |";
+		gotoxy(21, 14);  cout << "|     Do you want to     |";
+		gotoxy(21, 15);  cout << "|    insert your name    |";
+		gotoxy(21, 16);  cout << "|                        |";
+		gotoxy(21, 17);  cout << "|                        |";
+		gotoxy(21, 18);  cout << "|          YES           |";
+		gotoxy(21, 19);  cout << "|                        |";
+		gotoxy(21, 20);  cout << "|        GO BACK         |";
+		gotoxy(21, 21);  cout << "|________________________|";
+		Sleep(100);
+		while (1) {
+			if (GetAsyncKeyState(VK_UP)) { choice = 1; enter = 0; }
+			if (GetAsyncKeyState(VK_DOWN)) { choice = 2; enter = 0; }
+			if (GetAsyncKeyState(VK_RETURN) && i > 3) {
+				enter = 1;
+				cin.ignore(numeric_limits<streamsize>::max(), '\n');
+			}
+			if (i % 5 == 0) blinking = !blinking;
+			start.For_mainmenue_animation(i);
+
+			if (choice == 1) {
+
+				if (blinking) {
+					gotoxy(31, 18); 	cout << "{";
+					gotoxy(35, 18); 	cout << "}";
+
+				}
+				else {
+					gotoxy(31, 18); 	cout << " ";
+					gotoxy(35, 18); 	cout << " ";
+				}
+				gotoxy(29, 20); 	cout << " ";
+				gotoxy(37, 20); cout << " ";
+
+			}
+
+			else if (choice == 2) {
+				gotoxy(31, 18); 	cout << " ";
+				gotoxy(35, 18); 	cout << " ";
+
+				if (blinking) {
+					gotoxy(29, 20); 	cout << "{";
+					gotoxy(37, 20); cout << "}";
+				}
+				else {
+					gotoxy(29, 20); 	cout << " ";
+					gotoxy(37, 20); cout << " ";
+				}
+			}
+			if (choice == 1 && enter == 1) {
+
+				gotoxy(19, 10);  cout << " ____________________________";
+				gotoxy(19, 11);  cout << "|      ENTER YOUR NAME,      |";
+				gotoxy(19, 12);  cout << "|        HIGH SCORER!        |";
+				gotoxy(19, 13);  cout << "|                            |";
+				gotoxy(19, 14);  cout << "|                            |";
+				gotoxy(19, 15);  cout << "|                            |";
+				gotoxy(19, 16);  cout << "| ------------------ {ENTER} |";
+				gotoxy(19, 17);  cout << "|____________________________|";
+				gotoxy(19, 18);  cout << "                              ";
+				gotoxy(19, 19);  cout << "                              ";
+				gotoxy(19, 20);  cout << "                              ";
+				gotoxy(19, 21);  cout << "                              ";
+
+				Sleep(125);
+				start.For_mainmenue_animation(i);
+
+				gotoxy(21, 15);
+				getline(cin, name);
+
+				fstream hs;
+				hs.open("Highscore.txt", fstream::in | fstream::out | fstream::app);
+				hs.width(20);
+				hs.fill('.');
+				hs << left << name;
+				hs.width(4);
+				hs.fill('.');
+				hs << right << pts << endl;
+				hs.close();
+
+				ifstream myfile("Highscore.txt");
+				if (myfile.is_open())
+				{
+					for (i = 0; myfile.good(); i++)
+					{
+						getline(myfile, High_Score_Data[i]);
+					}
+					myfile.close();
+				}
+				int c;
+				for (int l = 0; l < i; l++) {
+					for (c = 0; c < High_Score_Data[l].length(); c++) { if (isdigit(High_Score_Data[l][c])) break; }
+					High_Score_Data[l] = High_Score_Data[l].substr(c, High_Score_Data[l].length() - c);
+					highscore[l] = atoi(High_Score_Data[l].c_str());
+				}
+
+				system("cls");
+				pts = 0;
+				break;
+			}
+			else if (choice == 2 && enter == 1) {
+				Sleep(100);
+				system("cls");
+				main();
+			}
+			Sleep(125);
+			i++;
+
+
+		}
+
+	}
+    if(pts == 0){
+	system("cls");
+	cout << "The pacman's high score list" << endl << endl;
+	cout << "    NAME               score" << endl;
+	ifstream myfile("Highscore.txt");
+	if (myfile.is_open())
+	{
+		for (i = 0; myfile.good(); i++)
+		{
+			getline(myfile, High_Score_Data[i]);
+		}
+		myfile.close();
+	}
+
+	for (j = 0; j < i; j++)
+	{
+		High_Score_Data_temp[j] = High_Score_Data[j];
+	}
+
+	int c;
+	for (l = 0; l < i; l++) {
+		for (c = 0; c < High_Score_Data[l].length(); c++) { if (isdigit(High_Score_Data[l][c])) break; }
+		High_Score_Data[l] = High_Score_Data[l].substr(c, High_Score_Data[l].length() - c);
+		highscore[l] = atoi(High_Score_Data[l].c_str());
+	}
+	l = 0;
+	for (c = 0; c < i; c++) {
+		ord[c] = l;
+		l++;
+	}
+
+	for (l = 0; l<i; l++)
+	{
+		for (j = l + 1; j<i; j++)
+		{
+			if (highscore[l] > highscore[j])
+			{
+				temp = highscore[l];
+				highscore[l] = highscore[j];
+				highscore[j] = temp;
+
+				temp = ord[l];
+				ord[l] = ord[j];
+				ord[j] = temp;
+			}
+		}
+	}
+
+	i--;
+	j = 1;
+	for (i; i>0; i--)
+	{
+		cout << j << "."; 
+		gotoxy(4, j+2); cout << High_Score_Data_temp[ord[i]] << endl;
+		j++;
+	}
+	enter = 0;
+	choice = 1;
+	c = 0;
+	j += 3;
+	gotoxy(0, j); cout << " GO BACK      CLEAR THE LIST";
+	while (1) {
+		if (GetAsyncKeyState(VK_LEFT)) { 
+			gotoxy(13, j); 	cout << " ";
+			gotoxy(28, j); 	cout << " ";
+			choice = 1; enter = 0; }
+		if (GetAsyncKeyState(VK_RIGHT)) { 
+			gotoxy(0, j); 	cout << " ";
+			gotoxy(8, j); 	cout << " ";
+			choice = 2; enter = 0; }
+		if (GetAsyncKeyState(VK_RETURN) && c > 3) {
+			enter = 1;
+			cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		}
+		if (c % 6 == 0) blinking = !blinking;
+		if (choice == 1) {
+			if (blinking) {
+				gotoxy(0, j); 	cout << "{";
+				gotoxy(8, j); 	cout << "}";
+
+			}
+			else {
+				gotoxy(0, j); 	cout << " ";
+				gotoxy(8, j); 	cout << " ";
+			}
+		}
+		else if (choice == 2) {
+			if (blinking) {
+			gotoxy(13, j); 	cout << "{";
+			gotoxy(28, j); 	cout << "}";
+
+		}
+			else {
+				gotoxy(13, j); 	cout << " ";
+				gotoxy(28, j); 	cout << " ";
+			}
+		}
+
+		Sleep(100);
+		c++;
+
+		if (enter == 1 && choice == 1) break;
+		if (enter == 1 && choice == 2) {
+			ofstream ofs;
+			ofs.open("Highscore.txt", ofstream::out | ofstream::trunc);
+			ofs.close();
+			highscorefunc(pts);
+		}
+	}
+
+
+}
+	system("cls");
+	main();
+}
+void load_the_map() {
+	int i = 0;
+	string line[30];
+	ifstream myfile("map.txt");
+
+	if (myfile.is_open())
+
+	{
+		while (myfile.good())
+
+		{
+			getline(myfile, line[i]);
+			strcpy_s(map[i], line[i].c_str());
+			i++;
+		}
+
+		myfile.close();
+
+	}
+}
+
+void load_empty_map() {
+	int i = 0;
+	string line[30];
+	ifstream myfile("empty_map.txt");
+
+	if (myfile.is_open())
+
+	{
+		while (myfile.good())
+
+		{
+			getline(myfile, line[i]);
+			strcpy_s(map[i], line[i].c_str());
+			i++;
+		}
+
+		myfile.close();
+
+	}
+}
+void load_empty_map_highscore() {
+	int i = 0;
+	string line[30];
+	ifstream myfile("empty_map_highscore.txt");
+	
+	if (myfile.is_open())
+
+	{
+		while (myfile.good())
+
+		{
+			getline(myfile, line[i]);
+			strcpy_s(map[i], line[i].c_str());
+			i++;
+		}
+
+		myfile.close();
+
+	}
+}
+
+vector<int> read_numbers(string file_name)
+{
+	ifstream infile;
+	infile.open(file_name);
+	vector<int> numbers;
+
+	if (infile.is_open())
+	{
+		int num;
+
+		for (int i = 0; i << 6; i++)
+		{
+			if (infile >> num)
+			{
+				infile >> num;
+				numbers.push_back(num);
+			}
+		}
+	}
+
+	return numbers;
+}
+
+
+void ShowMap()
+{
+	for (int i = 0; i < 30; i++) {
+		printf("%s\n", map[i]);
+	}
+}
+
+void gotoxy(short x, short y)
+{
+	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+	COORD position = { x, y };
+
+	SetConsoleCursorPosition(hStdout, position);
+}
+
+void AddArray(int x, int y, int wc, int back) {
+	if (tmp_map[y][x] == ' ' || tmp_map[y][x] == '.' || tmp_map[y][x] == '0' || tmp_map[y][x] == '_') {
+		tmp_map[y][x] = '#';
+		if (tmp_map[y][x + 1] == ' ' || tmp_map[y][x + 1] == '.') {
+			tmp_map[y][x + 1] = '#';
+		}
+		walk tmp;
+		tmp.x = x;
+		tmp.y = y;
+		tmp.walk_count = wc;
+		tmp.back = back;
+		BFSArray.push_back(tmp);
+	}
+}
+void FindPath(int sx, int sy, int x, int y) {
+
+
+	memcpy(tmp_map, map, sizeof(map));
+	BFSArray.clear();
+	walk tmp;
+	tmp.x = sx;
+	tmp.y = sy;
+	tmp.walk_count = 0;
+	tmp.back = -1;
+	BFSArray.push_back(tmp);
+
+	int i = 0;
+	while (i < BFSArray.size()) {
+		if ((BFSArray[i].x == x && BFSArray[i].y == y) || (BFSArray[i].x == x + 1 && BFSArray[i].y == y) || (BFSArray[i].x + 1 == x && BFSArray[i].y == y)) {
+			walk_queue.clear();
+			target tmp2;
+			while (BFSArray[i].walk_count != 0) {
+				tmp2.x = BFSArray[i].x;
+				tmp2.y = BFSArray[i].y;
+				walk_queue.push_back(tmp2);
+
+				i = BFSArray[i].back;
+			}
+
+			break;
+		}
+		if ((map[BFSArray[i].y][BFSArray[i].x + 2] == ' ' || map[BFSArray[i].y][BFSArray[i].x + 2] == '.') && (map[BFSArray[i].y][BFSArray[i].x + 3] == ' ' || map[BFSArray[i].y][BFSArray[i].x + 3] == '.')) {
+			AddArray(BFSArray[i].x + 2, BFSArray[i].y, BFSArray[i].walk_count + 1, i);
+		}
+		else 		AddArray(BFSArray[i].x + 1, BFSArray[i].y, BFSArray[i].walk_count + 1, i);
+		if ((map[BFSArray[i].y][BFSArray[i].x - 2] == ' ' || map[BFSArray[i].y][BFSArray[i].x - 2] == '.') && (map[BFSArray[i].y][BFSArray[i].x - 1] == ' ' || map[BFSArray[i].y][BFSArray[i].x - 1] == '.')) {
+			AddArray(BFSArray[i].x - 2, BFSArray[i].y, BFSArray[i].walk_count + 1, i);
+		}
+		else 			AddArray(BFSArray[i].x - 1, BFSArray[i].y, BFSArray[i].walk_count + 1, i);
+
+		AddArray(BFSArray[i].x, BFSArray[i].y + 1, BFSArray[i].walk_count + 1, i);
+		AddArray(BFSArray[i].x, BFSArray[i].y - 1, BFSArray[i].walk_count + 1, i);
+
+		i++;
+
+	}
+
+	BFSArray.clear();
+}
+void printFigures() {
+	pacman = ":)";
+
+	system("cls");
+	ShowMap();
+
+	gotoxy(ex, ey); cout << "D:";
+	gotoxy(ex2, ey2); cout << ":c";
+	gotoxy(ex3, ey3); cout << ">:";
+	gotoxy(ex4, ey4); cout << ":{";
+	gotoxy(x, y); cout << pacman;
+	gotoxy(44, 25); cout << "Press 'Esc' to exit";
+	gotoxy(10, 25); cout << pts;
+	gotoxy(32, 25); cout << ":) :) ";
+}
+
+
+
+

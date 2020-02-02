@@ -1,0 +1,10 @@
+﻿1>------ Build started: Project: pacmanfinal, Configuration: Debug Win32 ------
+1>  pacmanfinal.cpp
+1>c:\users\yousf\onedrive\documents\visual studio 2015\projects\pacmanfinal\pacmanfinal\pacmanfinal.cpp(323): warning C4101: 'Pacman': unreferenced local variable
+1>c:\users\yousf\onedrive\documents\visual studio 2015\projects\pacmanfinal\pacmanfinal\pacmanfinal.cpp(648): warning C4018: '<': signed/unsigned mismatch
+1>c:\users\yousf\onedrive\documents\visual studio 2015\projects\pacmanfinal\pacmanfinal\pacmanfinal.cpp(772): warning C4018: '<': signed/unsigned mismatch
+1>c:\users\yousf\onedrive\documents\visual studio 2015\projects\pacmanfinal\pacmanfinal\pacmanfinal.cpp(814): warning C4018: '<': signed/unsigned mismatch
+1>c:\users\yousf\onedrive\documents\visual studio 2015\projects\pacmanfinal\pacmanfinal\pacmanfinal.cpp(675): warning C4101: 'temp2': unreferenced local variable
+1>c:\users\yousf\onedrive\documents\visual studio 2015\projects\pacmanfinal\pacmanfinal\pacmanfinal.cpp(1016): warning C4018: '<': signed/unsigned mismatch
+1>  pacmanfinal.vcxproj -> C:\Users\yousf\OneDrive\Documents\Visual Studio 2015\Projects\pacmanfinal\Debug\pacmanfinal.exe
+========== Build: 1 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========
